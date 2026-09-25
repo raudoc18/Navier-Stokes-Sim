@@ -17,16 +17,34 @@ class Matrix {
             :
               storage(std::make_unique_for_overwrite<T[]>(elem_cnt)),
               raw_ptr(storage.get()) {
-            for (int j = 1; j < ny + 1; j++) {
-                for (int i = 1; i < nx + 1; i++) {
+            for (int j = 0; j < ny + 2; j++) {
+                for (int i = 0; i < nx + 2; i++) {
                     raw_ptr[j * (nx + 2) + i] = val;
+                    if (i == 0) {
+                        raw_ptr[j * (nx + 2) + i] = 0.0;
+                    }
+                    else if (i == nx + 1) {
+                        raw_ptr[j * (nx + 2) + i] = 0.0;
+                    }
+                    if (j == 0) {
+                        raw_ptr[j * (nx + 2) + i] = 0.0;
+                    }
+                    else if (j == ny + 1) {
+                        raw_ptr[j * (nx + 2) + i] = 0.0;
+                    }
                 }
             }
         }
         Matrix()
             :
               storage(std::make_unique_for_overwrite<T[]>(elem_cnt)),
-              raw_ptr(storage.get()) {}
+              raw_ptr(storage.get()) {
+            for (int j = 0; j < ny + 2; j++) {
+                for (int i = 0; i < nx + 2; i++) {
+                    raw_ptr[j * (nx + 2) + i] = static_cast<T>(0.0);
+                }
+            }
+        }
 
         Matrix(T* external_ptr)
             :
@@ -64,8 +82,24 @@ class Matrix {
             catlas_daxpby(elem_cnt,  -1.0, m.data(), 1, 1.0, this->data(), 1);
         }
 
+        int maxIdx() {
+            return cblas_idamax(elem_cnt, this->data(), 1);
+        }
+
         double dot(const Matrix &m) {
             return cblas_ddot(elem_cnt, this->data(), 1, m.data(), 1);
+        }
+
+        std::string printMatrix() {
+            std::string outstr = "[";
+            for (int j= 1; j < ny + 1; j++) {
+                for (int i = 1; i < nx + 1; i++) {
+                    outstr.append(std::format("{:.{}g}", raw_ptr[j * (nx + 2) + i], std::numeric_limits<double>::max_digits10));
+                    outstr.append(", ");
+                }
+            }
+            outstr.replace(outstr.size() - 2, 2, "]");
+            return outstr;
         }
 
         double norm() {

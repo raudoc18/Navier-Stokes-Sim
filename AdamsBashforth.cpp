@@ -12,25 +12,25 @@ void AdamsBashforth::AB2u() const {
     dispatch_queue_t queue = dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0);
 
     // get the number of workers
-    int n_workers = (ny + 2 + batchsize - 1) / batchsize;
+    int n_workers = (ny + batchsize - 1) / batchsize;
 
     dispatch_apply(n_workers, queue, ^(size_t batch_idx) {
-        int start_idx = static_cast<int>(batch_idx) * batchsize;
+        int start_idx = static_cast<int>(batch_idx) * batchsize + 1;
         int end_idx = std::min(start_idx + batchsize, ny + 1);
 
-            for (int j = start_idx + 1; j < end_idx; j++) {
+            for (int j = start_idx; j < end_idx; j++) {
                 for (int i = 1; i < nx + 1; i++) {
                     double uwn = 0.5 * (un(j, i) + un(j, i - 1));
                     double uen = 0.5 * (un(j, i) + un(j, i + 1));
                     double unn = 0.5 * (un(j, i) + un(j + 1, i));
-                    double usn = 0.5 * (un(j, i) + un(j - 1, i - 1));
+                    double usn = 0.5 * (un(j, i) + un(j - 1, i));
                     double vnn = 0.5 * (vn(j + 1 , i - 1) + vn(j + 1, i));
                     double vsn = 0.5 * (vn(j, i) + vn(j, i - 1));
 
                     double uwnm1 = 0.5 * (unm1(j, i) + unm1(j, i - 1));
                     double uenm1 = 0.5 * (unm1(j, i) + unm1(j, i + 1));
                     double unnm1 = 0.5 * (unm1(j, i) + unm1(j + 1, i));
-                    double usnm1 = 0.5 * (unm1(j, i) + unm1(j - 1, i - 1));
+                    double usnm1 = 0.5 * (unm1(j, i) + unm1(j - 1, i));
                     double vnnm1 = 0.5 * (vnm1(j + 1 , i - 1) + vnm1(j + 1, i));
                     double vsnm1 = 0.5 * (vnm1(j, i) + vnm1(j, i - 1));
 
@@ -52,18 +52,18 @@ void AdamsBashforth::forwardEuleru() const {
     dispatch_queue_t queue = dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0);
 
     // get the number of workers
-    int n_workers = (ny + 2 + batchsize - 1) / batchsize;
+    int n_workers = (ny + batchsize - 1) / batchsize;
 
     dispatch_apply(n_workers, queue, ^(size_t batch_idx) {
-        int start_idx = static_cast<int>(batch_idx) * batchsize;
+        int start_idx = static_cast<int>(batch_idx) * batchsize + 1;
         int end_idx = std::min(start_idx + batchsize, ny + 1);
 
-            for (int j = start_idx + 1; j < end_idx; j++) {
+            for (int j = start_idx; j < end_idx; j++) {
                 for (int i = 1; i < nx + 1; i++) {
                 double uwn = 0.5 * (un(j, i) + un(j, i - 1));
                 double uen = 0.5 * (un(j, i) + un(j, i + 1));
                 double unn = 0.5 * (un(j, i) + un(j + 1, i));
-                double usn = 0.5 * (un(j, i) + un(j - 1, i - 1));
+                double usn = 0.5 * (un(j, i) + un(j - 1, i));
                 double vnn = 0.5 * (vn(j + 1 , i - 1) + vn(j + 1, i));
                 double vsn = 0.5 * (vn(j, i) + vn(j, i - 1));
 
@@ -81,13 +81,13 @@ void AdamsBashforth::AB2v() const {
     dispatch_queue_t queue = dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0);
 
     // get the number of workers
-    int n_workers = (ny + 2 + batchsize - 1) / batchsize;
+    int n_workers = (ny + batchsize - 1) / batchsize;
 
     dispatch_apply(n_workers, queue, ^(size_t batch_idx) {
-        int start_idx = static_cast<int>(batch_idx) * batchsize;
+        int start_idx = static_cast<int>(batch_idx) * batchsize + 1;
         int end_idx = std::min(start_idx + batchsize, ny + 1);
 
-            for (int j = start_idx + 1; j < end_idx; j++) {
+            for (int j = start_idx; j < end_idx; j++) {
                 for (int i = 1; i < nx + 1; i++) {
                     double unn = 0.5 * (un(j, i) + un(j - 1, i));
                     double usn = 0.5 * (un(j, i + 1) + un(j - 1, i + 1));
@@ -121,13 +121,13 @@ void AdamsBashforth::forwardEulerv() const {
     dispatch_queue_t queue = dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0);
 
     // get the number of workers
-    int n_workers = (ny + 2 + batchsize - 1) / batchsize;
+    int n_workers = (ny + batchsize - 1) / batchsize;
 
     dispatch_apply(n_workers, queue, ^(size_t batch_idx) {
-        int start_idx = static_cast<int>(batch_idx) * batchsize;
+        int start_idx = static_cast<int>(batch_idx) * batchsize + 1;
         int end_idx = std::min(start_idx + batchsize, ny + 1);
 
-            for (int j = start_idx + 1; j < end_idx; j++) {
+            for (int j = start_idx; j < end_idx; j++) {
                 for (int i = 1; i < nx + 1; i++) {
                     double unn = 0.5 * (un(j, i) + un(j - 1, i));
                         double usn = 0.5 * (un(j, i + 1) + un(j - 1, i + 1));

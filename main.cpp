@@ -1,23 +1,14 @@
 #include "Constants.h"
 #include "Matrix.h"
 #include <iostream>
+#include <thread>
+
 #include "AdamsBashforth.h"
 #include "Chorin.h"
 #include "CrankNicolson.h"
+#include "Renderer.h"
 
 typedef datastruct::Matrix<double> Matrix;
-
-void intializeMatrices(Matrix &u, Matrix &un, Matrix &v, Matrix &vn, Matrix &p) {
-    for (int i = 0; i < nx + 2; ++i) {
-        for (int j = 0; j < ny + 2; ++j) {
-            u(j, i) = 0.0;
-            un(j, i) = 0.0;
-            v(j, i) = 0.0;
-            vn(j, i) = 0.0;
-            p(j, i) = 0.0;
-        }
-    }
-}
 
 void boundaryConditions(Matrix &u, Matrix&v) {
     for (int i = 0; i < nx + 2; ++i) {
@@ -55,106 +46,72 @@ void boundaryConditions(Matrix &u, Matrix&v) {
     }
 }
 
-int test() {
-    if (!glfwInit()) {
-        std::cerr << "Failed to initialize GLFW\n";
-        return -1;
-    }
-
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Required on macOS
-
-    GLFWwindow* window = glfwCreateWindow(800, 600, "OpenGL 4.1 on macOS", nullptr, nullptr);
-    if (!window) {
-        std::cerr << "Failed to create GLFW window\n";
-        glfwTerminate();
-        return -1;
-    }
-    glfwMakeContextCurrent(window);
-
-    // Initialize GLAD
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cerr << "Failed to initialize GLAD\n";
-        return -1;
-    }
-
-    std::cout << "OpenGL Version: " << glGetString(GL_VERSION) << "\n";
-
-    // Main render loop
-    while (!glfwWindowShouldClose(window)) {
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
-
-    glfwDestroyWindow(window);
-    glfwTerminate();
-    return 0;
-}
-
 int main() {
     int cnt = 0;
     double deltat = 0;
 
-    auto u = Matrix();
-    auto un = Matrix();
-    auto unm1 = Matrix();
-    auto uAB = Matrix();
-    auto uCN = Matrix();
+    auto u = Matrix(0.0);
+    auto un = Matrix(0.0);
+    auto unm1 = Matrix(0.0);
+    auto uAB = Matrix(0.0);
+    auto uCN = Matrix(0.0);
 
-    auto v = Matrix();
-    auto vn = Matrix();
-    auto vnm1 = Matrix();
-    auto vAB = Matrix();
-    auto vCN = Matrix();
+    auto v = Matrix(0.0);
+    auto vn = Matrix(0.0);
+    auto vnm1 = Matrix(0.0);
+    auto vAB = Matrix(0.0);
+    auto vCN = Matrix(0.0);
 
-    auto p = Matrix();
-    auto pn = Matrix();
+    auto p = Matrix(0.0);
+    auto pn = Matrix(0.0);
 
-    AdamsBashforth adm = AdamsBashforth(uAB, un, unm1, vAB, vn, vnm1);
-    CrankNicolson cn = CrankNicolson(u, un, unm1, v, vn, vnm1);
+    AdamsBashforth adm = AdamsBashforth(uAB, u, unm1, vAB, v, vnm1);
+    CrankNicolson cn = CrankNicolson(u, v);
     Chorin cho = Chorin(p, u, v);
 
-    intializeMatrices(u, un, v, vn, p);
+    Renderer ren = Renderer(u, v);
 
-    test();
+    std::cout << "dt: " << dt << std::endl;
+    std::cout << "batch size: " << batchsize << std::endl;
+    std::cout << "nx: " << nx << std::endl;
+    std::cout << "ny: " << ny << std::endl;
 
-    while (cnt < ntimesteps && deltat < animduration) {
+    while (!glfwWindowShouldClose(ren.getWindow())) {
+        while (cnt < ntimesteps && deltat < animduration) {
+            boundaryConditions(u, v);
+            boundaryConditions(unm1, vnm1);
 
-        boundaryConditions(u, v);
+            p = Matrix(0.0);
 
-        if (cnt == 0) {
-            adm.forwardEuleru();
-            adm.forwardEulerv();
+            if (cnt == 0) {
+                adm.forwardEuleru();
+                adm.forwardEulerv();
+            }
+            else {
+                adm.AB2u();
+                adm.AB2v();
+            }
+
+            cn.CN_Wrapper();
+
+            u.add(uAB);
+            v.add(vAB);
+
+            auto start = std::chrono::steady_clock::now();
+            cho.projection();
+            auto end = std::chrono::steady_clock::now();
+            std::chrono::duration<double, std::milli> duration_ms = end - start;
+            std::cout << "Execution time of boundaries: " << duration_ms.count() << " ms\n";
+
+            unm1.clone(u);
+            vnm1.clone(v);
+
+            // visualization
+            ren.render();
+
+
+            std::cout << cnt << std::endl;
         }
-        else {
-            adm.AB2u();
-            adm.AB2v();
-        }
-
-        cn.CN_Wrapper();
-
-        u.add(uAB);
-        v.add(vAB);
-
-        cho.projection();
-
-        unm1 = std::move(un);
-        un = Matrix();
-        un.clone(u);
-
-        vnm1 = std::move(vn);
-        vn = Matrix();
-        vn.clone(v);
-
-        // visualization
-
-        deltat += dt;
-        ++cnt;
     }
 
     return 0;

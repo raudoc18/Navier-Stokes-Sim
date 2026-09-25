@@ -24,6 +24,7 @@ class AdamsBashforth {
     datastruct::Matrix<double> &v;
     datastruct::Matrix<double> &vn;
     datastruct::Matrix<double> &vnm1;
+    void getIndices(size_t batch_idx);
 };
 
 #endif //CPP_PROTOTYPE_ADAMSBASHFORTH_H

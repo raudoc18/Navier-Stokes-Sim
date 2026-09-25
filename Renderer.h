@@ -5,21 +5,55 @@
 #ifndef CPP_PROTOTYPE_RENDERER_H
 #define CPP_PROTOTYPE_RENDERER_H
 
-#include "external/glad/include/glad/glad.h"
+#include "Matrix.h"
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 class Renderer {
 public:
-    Renderer() {
+    Renderer(datastruct::Matrix<double> &u,  datastruct::Matrix<double> &v): u(u), v(v) {
         init();
     }
 
-    void init();
+    ~Renderer();
 
-    void draw();
+    void render();
+
+    GLFWwindow* getWindow() const {
+        return window;
+    }
 
 private:
     GLuint VBO;
+    GLuint VAO;
+    GLuint EBO;
+    GLuint uBuffer;
+    GLuint vBuffer;
+    GLFWwindow* window;
+
+    GLuint shaderProgram;
+
+    datastruct::Matrix<double> &u;
+    datastruct::Matrix<double> &v;
+
+    void createWindow();
+
+    void loadContext();
+
+    void init();
+
+    void createContainerBuffer();
+
+    void createBuffers();
+
+    static void addShader(GLuint shaderProgram, const char *shaderCode, GLenum shaderType);
+
+    void compileShaders();
+
+    void createR32TextureForVelocity(GLuint &bufferID);
+
+    void updateVelocityBuffer(GLuint &bufferID, datastruct::Matrix<double> &m);
+
 };
 
 #endif //CPP_PROTOTYPE_RENDERER_H

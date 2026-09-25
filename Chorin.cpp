@@ -19,10 +19,10 @@ Matrix Chorin::AdotChorin(const datastruct::Matrix<double> &x) {
     int n_workers = (ny + batchsize - 1) / batchsize;
 
     dispatch_apply(n_workers, queue, ^(size_t batch_idx) {
-        int start_idx = static_cast<int>(batch_idx) * batchsize;
+        int start_idx = static_cast<int>(batch_idx) * batchsize + 1;
         int end_idx = std::min(start_idx + batchsize, ny + 1);
 
-        for (int j = start_idx + 1; j < end_idx; j++) {
+        for (int j = start_idx; j < end_idx; j++) {
             for (int i = 1; i < nx + 1; i++) {
                 (*res_ptr)(j, i) =
                     - (x(j + 1, i)*an(j, i) + x(j - 1, i)*as(j, i))
@@ -34,12 +34,7 @@ Matrix Chorin::AdotChorin(const datastruct::Matrix<double> &x) {
     return res;
 }
 
-
-
 void Chorin::laplaceSolver() {
-    double tol = 1e-5;
-    int maxit = 10000;
-
     Matrix rk = arangeRK();
 
     Matrix ones = Matrix(1.0);
@@ -53,30 +48,33 @@ void Chorin::laplaceSolver() {
 
     int cnt = 0;
 
-    double norm = rk.norm();
+    double rkdot = rk.dot(rk);
 
-    while (norm > tol && cnt < maxit) {
-        double rkdot = rk.dot(rk);
+    while (std::sqrt(rkdot) > tol && cnt < maxit) {
         double ak = rkdot / pk.dot(Apk);
 
         p.add(pk, ak);
         rk.subtract(Apk, ak);
 
-        norm = rk.norm();
+        rk.subtract(ones, rk.mean());
 
-        if (norm < tol) {
-            std::cout << "Norm: " << rk.norm() << std::endl;
-            std::cout << "Converged in: " << cnt << std::endl;
+        double rkdot_next = rk.dot(rk);
+
+        if (std::sqrt(rkdot_next) < tol) {
+            p.subtract(ones, p.mean());
             return;
         }
 
-        double bk = rk.dot(rk)/rkdot;
+        double bk = rkdot_next/rkdot;
         pk.add(rk, 1.0, bk);
+
+        rkdot = rkdot_next;
 
         Apk = std::move(AdotChorin(pk));
 
         ++cnt;
     }
+    p.subtract(ones, p.mean());
     std::cerr << "Warning: Did not converge in the specified timesteps! " << cnt << std::endl;
 }
 
@@ -89,51 +87,49 @@ void Chorin::gradient(Matrix &x) {
     dispatch_queue_t queue = dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0);
 
     // get the number of workers
-    int n_workers = (ny + 2 + batchsize - 1) / batchsize;
+    int n_workers = (ny + batchsize - 1) / batchsize;
 
     dispatch_apply(n_workers, queue, ^(size_t batch_idx) {
-        int start_idx = static_cast<int>(batch_idx) * batchsize;
+        int start_idx = static_cast<int>(batch_idx) * batchsize + 1;
         int end_idx = std::min(start_idx + batchsize, ny + 1);
-        for (int j = start_idx + 1; j < end_idx; j++) {
+        for (int j = start_idx; j < end_idx; j++) {
             for (int i = 2; i < nx + 1; i++) {
                 (*resx_ptr)(j, i) = (x(j, i) - x(j, i - 1))/dx;
             }
         }
-        for (int j = start_idx + 2; j < end_idx; j++) {
+        for (int j = start_idx + 1; j < end_idx; j++) {
             for (int i = 1; i < nx + 1; i++) {
                 (*resy_ptr)(j, i) = (x(j, i) - x(j - 1, i))/dy;
             }
         }
     });
 
-    ut.add(gradx, dt/rho);
-    vt.add(grady, dt/rho);
+    ut.subtract(gradx, dt/rho);
+    vt.subtract(grady, dt/rho);
 
 }
 
 void Chorin::projection() {
-    std::cout << "#################Starting Chorin#################" << std::endl;
     laplaceSolver();
     gradient(p);
-    std::cout << "#################Finished Chorin#################" << std::endl;
 }
 
 Matrix Chorin::arangeRK() {
-    auto res = Matrix();
+    auto res = Matrix(0.0);
     auto* res_ptr = &res;
 
     dispatch_queue_t queue = dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0);
 
     // get the number of workers
-    int n_workers = (ny + 2 + batchsize - 1) / batchsize;
+    int n_workers = (ny + batchsize - 1) / batchsize;
 
     dispatch_apply(n_workers, queue, ^(size_t batch_idx) {
-        int start_idx = static_cast<int>(batch_idx) * batchsize;
+        int start_idx = static_cast<int>(batch_idx) * batchsize + 1;
         int end_idx = std::min(start_idx + batchsize, ny + 1);
 
-        for (int j = start_idx + 1; j < end_idx; j++) {
+        for (int j = start_idx; j < end_idx; j++) {
             for (int i = 1; i < nx + 1; i++) {
-                (*res_ptr)(j, i) = rho/dt * ((ut(j, i + 1) - ut(j, i))/dx + (vt(j + 1, i) - vt(j, i))/dy)
+                (*res_ptr)(j, i) = - rho/dt * ((ut(j, i + 1) - ut(j, i))/dx + (vt(j + 1, i) - vt(j, i))/dy)
                     + (- (p(j + 1, i)*an(j, i) - p(j - 1, i)*as(j, i))
                     - (p(j, i + 1)*ae(j, i) - p(j, i - 1)*aw(j, i))
                     + ap(j, i) * p(j, i));

@@ -8,19 +8,14 @@
 
 class CrankNicolson {
     public:
-    CrankNicolson(datastruct::Matrix<double> &u, datastruct::Matrix<double>&un, datastruct::Matrix<double>&unm1,
-       datastruct::Matrix<double>&v, datastruct::Matrix<double>&vn, datastruct::Matrix<double>&vnm1
-       ) : u(u), un(un), unm1(unm1), v(v), vn(vn), vnm1(vnm1) {}
+    CrankNicolson(datastruct::Matrix<double> &u, datastruct::Matrix<double>&v
+       ) : u(u), v(v) {}
 
     void CN_Wrapper();
 
 private:
     datastruct::Matrix<double> &u;
-    datastruct::Matrix<double> &un;
-    datastruct::Matrix<double> &unm1;
     datastruct::Matrix<double> &v;
-    datastruct::Matrix<double> &vn;
-    datastruct::Matrix<double> &vnm1;
 
     static datastruct::Matrix<double> AdotCN(const datastruct::Matrix<double> &m) ;
 

@@ -4,23 +4,242 @@
 
 #include "Renderer.h"
 
+#include <iostream>
+
 #include "Matrix.h"
+#include "Utils.h"
+#include "external/glad/include/glad/glad.h"
 
-typedef  datastruct::Matrix<float> Matrix;
+typedef  datastruct::Matrix<double> Matrix;
 
-void Renderer::init() {
-    Matrix posData = Matrix();
+void Renderer::createWindow() {
+    if (!glfwInit()) {
+        std::cerr << "Failed to initialize GLFW\n";
+        exit(1);
+    }
 
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*elem_cnt, posData.data(), GL_STATIC_DRAW);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Required on macOS
+
+    window = glfwCreateWindow(800, 600, "OpenGL 4.1 on macOS", nullptr, nullptr);
+    if (!window) {
+        std::cerr << "Failed to create GLFW window\n";
+        glfwTerminate();
+        exit(1);
+    }
+
+    glfwMakeContextCurrent(window);
+
+    // Initialize GLAD
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::cerr << "Failed to initialize GLAD\n";
+        exit(1);
+    }
+
+    std::cout << "OpenGL Version: " << glGetString(GL_VERSION) << "\n";
+
+    shaderProgram = glCreateProgram();
+
+    if (shaderProgram == 0) {
+        std::cerr << "Error when creating shader program" << std::endl;
+    }
+
+    createBuffers();
+    compileShaders();
 }
 
-void Renderer::draw() {
-    glClear(GL_COLOR_BUFFER_BIT);
+void Renderer::init() {
+    createWindow();
+}
+
+void Renderer::createContainerBuffer() {
+    // create vertices positions and indices
+    float quadVertices[] = {
+        // Positions   // Texture Coordinates (UV)
+        -1.0f, -1.0f,   0.0f, 0.0f, // Bottom-Left
+        -1.0f,  1.0f,   0.0f, 1.0f, // Top-Left
+         1.0f,  1.0f,   1.0f, 1.0f, // Top-Right
+         1.0f, -1.0f,   1.0f, 0.0f  // Bottom-Right
+    };
+
+    unsigned int quadIndices[] = {
+        0, 1, 2,
+        0, 2, 3
+    };
+
+    // gen a vertex array
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+
+    glBindVertexArray(VAO);
+
+    // gen the vertex and index buffers for the container and fill values
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadIndices), quadIndices, GL_STATIC_DRAW);
+
+    GLint stride = 4 * sizeof(float);
+
+    // Attribute 0: Coords of the container
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glDrawArrays(GL_POINTS, 0, elem_cnt);
-    glDisableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, nullptr);
+
+    // Attribute 1: TexCoords (location = 1 in vertex shader)
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void *) (2 * sizeof(float)));
+
+    // unbind vertex array
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
+
+void Renderer::createBuffers() {
+    createContainerBuffer();
+
+    createR32TextureForVelocity(uBuffer);
+    createR32TextureForVelocity(vBuffer);
+}
+
+void Renderer::addShader(GLuint shaderProgram, const char* shaderCode, GLenum shaderType) {
+    GLuint shaderObj = glCreateShader(shaderType);
+
+    const GLchar* p[1];
+    p[0] = shaderCode;
+
+    GLint len[1];
+    len[0] = static_cast<GLint>(strlen(shaderCode));
+
+    glShaderSource(shaderObj, 1, p, len);
+    glCompileShader(shaderObj);
+
+    GLint success;
+    glGetShaderiv(shaderObj, GL_COMPILE_STATUS, &success);
+
+    if (!success) {
+        GLchar infoLog[1024];
+        glGetShaderInfoLog(shaderObj, 1024, nullptr, infoLog);
+        std::cerr << infoLog << std::endl;
+        exit(1);
+    }
+
+    glAttachShader(shaderProgram, shaderObj);
+}
+
+void Renderer::compileShaders() {
+    const char* VSFileName = "./shaders/vertex.vs";
+    const char* FSFileName = "./shaders/fragment.fs";
+
+    std::string vs, fs;
+
+    if (!readFile(VSFileName, vs)) {
+        std::cerr << "Error when loading vertex shader" << std::endl;
+    }
+
+    addShader(shaderProgram, vs.c_str(), GL_VERTEX_SHADER);
+
+    if (!readFile(FSFileName, fs)) {
+        std::cerr << "Error when loading fragment shader" << std::endl;
+    }
+
+    addShader(shaderProgram, fs.c_str(), GL_FRAGMENT_SHADER);
+
+    GLint success;
+    GLchar errorLog[1024] = { 0 };
+
+    glLinkProgram(shaderProgram);
+
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+
+    if (!success) {
+        glGetProgramInfoLog(shaderProgram, 1024, nullptr, errorLog);
+        std::cerr << errorLog << std::endl;
+        exit(1);
+    }
+
+    glBindVertexArray(VAO);
+
+    glValidateProgram(shaderProgram);
+    glGetProgramiv(shaderProgram, GL_VALIDATE_STATUS, &success);
+
+    if (!success) {
+        glGetProgramInfoLog(shaderProgram, 1024, nullptr, errorLog);
+        std::cerr << errorLog << std::endl;
+        exit(1);
+    }
+
+    glUseProgram(shaderProgram);
+}
+
+void Renderer::createR32TextureForVelocity(GLuint &bufferID) {
+
+    // create new texture binder and bind it
+    glGenTextures(1, &bufferID);
+    glBindTexture(GL_TEXTURE_2D, bufferID);
+
+    // interpolation settings
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // specify the type of the texture
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, nx + 2, ny + 2, 0, GL_RED, GL_FLOAT, nullptr);
+}
+
+Renderer::~Renderer() {
+    glDeleteProgram(shaderProgram);
+    glDeleteTextures(1, &uBuffer);
+    glDeleteTextures(1, &vBuffer);
+    glDeleteVertexArrays(1, &VAO);
+}
+
+void Renderer::updateVelocityBuffer(GLuint &bufferID, Matrix &m) {
+    // Ensure tight row alignment for single-channel floats
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    datastruct::Matrix<float> mFloat = datastruct::Matrix<float>(0.0);
+
+    for (int i = 0; i < nx + 2; i++) {
+        for (int j = 0; j < ny + 2; j++) {
+            double val = m(j, i);
+            mFloat(j, i) = static_cast<float>(val);
+        }
+    }
+
+    mFloat.collectAsVector();
+
+    glBindTexture(GL_TEXTURE_2D, bufferID);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, nx + 2, ny + 2, GL_RED, GL_FLOAT, mFloat.data());
+}
+
+void Renderer::render() {
+    // clear Buffers
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    updateVelocityBuffer(uBuffer, u);
+    updateVelocityBuffer(vBuffer, v);
+
+    // bind buffers to corresponding attributes for shader
+    // position 0 for u
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, uBuffer);
+    glUniform1i(glGetUniformLocation(shaderProgram, "u"), 0);
+
+    // position 1 for v
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, vBuffer);
+    glUniform1i(glGetUniformLocation(shaderProgram, "v"), 1);
+
+    // init rendering process
+    glUseProgram(shaderProgram);
+    glBindVertexArray(VAO);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+    glfwSwapBuffers(window);
+    glfwPollEvents();
 }
