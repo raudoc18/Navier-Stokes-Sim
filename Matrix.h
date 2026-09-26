@@ -86,6 +86,10 @@ class Matrix {
             return cblas_idamax(elem_cnt, this->data(), 1);
         }
 
+        int minIdx() {
+            return 0;
+        }
+
         double dot(const Matrix &m) {
             return cblas_ddot(elem_cnt, this->data(), 1, m.data(), 1);
         }

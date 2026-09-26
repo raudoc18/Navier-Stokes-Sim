@@ -8,17 +8,14 @@
 
 class Chorin {
 public:
-    Chorin(datastruct::Matrix<double> &p, datastruct::Matrix<double>&ut, datastruct::Matrix<double>&vt
-       ) : p(p), ut(ut), vt(vt) {
+    Chorin(datastruct::Matrix<double> &p) : p(p) {
         initBoundaries();
     }
 
-    void projection();
+    void projection(datastruct::Matrix<double> &u, datastruct::Matrix<double> &v);
 
 private:
     datastruct::Matrix<double> &p;
-    datastruct::Matrix<double> &ut;
-    datastruct::Matrix<double> &vt;
     datastruct::Matrix<double> an = datastruct::Matrix<double>();
     datastruct::Matrix<double> as = datastruct::Matrix<double>();
     datastruct::Matrix<double> ae = datastruct::Matrix<double>();
@@ -27,12 +24,12 @@ private:
 
     datastruct::Matrix<double> AdotChorin(const datastruct::Matrix<double> &x);
 
-    datastruct::Matrix<double> arangeRK();
+    datastruct::Matrix<double> arangeRK(datastruct::Matrix<double> &u, datastruct::Matrix<double> &v);
 
     void initBoundaries();
-    void laplaceSolver();
+    void laplaceSolver(datastruct::Matrix<double> &u, datastruct::Matrix<double> &v);
 
-    void gradient(datastruct::Matrix<double> &x);
+    void gradient(datastruct::Matrix<double> &x, datastruct::Matrix<double> &u, datastruct::Matrix<double> &v);
 };
 
 #endif //CPP_PROTOTYPE_CHORIN_H

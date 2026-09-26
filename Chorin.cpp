@@ -34,8 +34,8 @@ Matrix Chorin::AdotChorin(const datastruct::Matrix<double> &x) {
     return res;
 }
 
-void Chorin::laplaceSolver() {
-    Matrix rk = arangeRK();
+void Chorin::laplaceSolver(Matrix &u, Matrix &v) {
+    Matrix rk = arangeRK(u, v);
 
     Matrix ones = Matrix(1.0);
 
@@ -78,7 +78,7 @@ void Chorin::laplaceSolver() {
     std::cerr << "Warning: Did not converge in the specified timesteps! " << cnt << std::endl;
 }
 
-void Chorin::gradient(Matrix &x) {
+void Chorin::gradient(Matrix &x, Matrix &u, Matrix &v) {
     auto gradx = Matrix();
     auto* resx_ptr = &gradx;
     auto grady = Matrix();
@@ -104,17 +104,17 @@ void Chorin::gradient(Matrix &x) {
         }
     });
 
-    ut.subtract(gradx, dt/rho);
-    vt.subtract(grady, dt/rho);
+    u.subtract(gradx, dt/rho);
+    v.subtract(grady, dt/rho);
 
 }
 
-void Chorin::projection() {
-    laplaceSolver();
-    gradient(p);
+void Chorin::projection(Matrix &u, Matrix &v) {
+    laplaceSolver(u, v);
+    gradient(p, u, v);
 }
 
-Matrix Chorin::arangeRK() {
+Matrix Chorin::arangeRK(Matrix &u, Matrix &v) {
     auto res = Matrix(0.0);
     auto* res_ptr = &res;
 
@@ -129,7 +129,7 @@ Matrix Chorin::arangeRK() {
 
         for (int j = start_idx; j < end_idx; j++) {
             for (int i = 1; i < nx + 1; i++) {
-                (*res_ptr)(j, i) = - rho/dt * ((ut(j, i + 1) - ut(j, i))/dx + (vt(j + 1, i) - vt(j, i))/dy)
+                (*res_ptr)(j, i) = - rho/dt * ((u(j, i + 1) - u(j, i))/dx + (v(j + 1, i) - v(j, i))/dy)
                     + (- (p(j + 1, i)*an(j, i) - p(j - 1, i)*as(j, i))
                     - (p(j, i + 1)*ae(j, i) - p(j, i - 1)*aw(j, i))
                     + ap(j, i) * p(j, i));
@@ -151,7 +151,6 @@ void Chorin::initBoundaries() {
             if (i == 1) {
                 aw(j, i) = 0.0;
             }
-
             else if (i == nx) {
                 ae(j, i) = 0.0;
             }

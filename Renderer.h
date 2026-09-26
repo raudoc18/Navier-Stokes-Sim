@@ -9,9 +9,14 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include "Obstacle.h"
+
 class Renderer {
 public:
-    Renderer(datastruct::Matrix<double> &u,  datastruct::Matrix<double> &v): u(u), v(v) {
+    Renderer(datastruct::Matrix<double> &u,  datastruct::Matrix<double> &v, std::vector<Obstacle*> &obstacles): u(u), v(v), obstacles(obstacles) {
+        obstacleVBOs = std::vector<GLuint>(obstacles.size());
+        obstacleEBOs = std::vector<GLuint>(obstacles.size());
+        obstacleVAOs = std::vector<GLuint>(obstacles.size());
         init();
     }
 
@@ -24,17 +29,24 @@ public:
     }
 
 private:
-    GLuint VBO;
-    GLuint VAO;
-    GLuint EBO;
+    GLuint velocityVBO;
+    GLuint velocityVAO;
+    GLuint velocityEBO;
     GLuint uBuffer;
     GLuint vBuffer;
+
     GLFWwindow* window;
 
-    GLuint shaderProgram;
+    GLuint velocityShaderProgram;
+    GLuint obstacleShaderProgram;
 
     datastruct::Matrix<double> &u;
     datastruct::Matrix<double> &v;
+    std::vector<Obstacle *> &obstacles;
+
+    std::vector<GLuint> obstacleVBOs;
+    std::vector<GLuint>  obstacleVAOs;
+    std::vector<GLuint>  obstacleEBOs;
 
     void createWindow();
 
@@ -43,6 +55,8 @@ private:
     void init();
 
     void createContainerBuffer();
+
+    void createObstacleBuffer();
 
     void createBuffers();
 

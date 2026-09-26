@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 find_package(glfw3 3.3 REQUIRED)
 find_package(OpenGL REQUIRED)
 
+# optimization flags
 add_compile_options(
         -O3               # Maximum speed optimization
         -march=native     # Target your specific Intel Skylake/Coffee Lake CPU architecture
@@ -28,10 +29,16 @@ add_executable(Cpp_Prototype main.cpp
         Renderer.h
         Utils.h
         Utils.cpp
+        StreamFunction.h
+        StreamFunction.cpp
+        Obstacle.h
+        Obstacle.cpp
+        ImmersedBoundary.h
+        ImmersedBoundary.cpp
 )
 
-#target_compile_options(Cpp_Prototype PRIVATE -fsanitize=address -g)
-#target_link_options(Cpp_Prototype PRIVATE -fsanitize=address)
+target_compile_options(Cpp_Prototype PRIVATE -fsanitize=address -g)
+target_link_options(Cpp_Prototype PRIVATE -fsanitize=address)
 
 find_library(ACCELERATE_FRAMEWORK Accelerate REQUIRED)
 add_compile_definitions(ACCELERATE_NEW_LAPACK)
