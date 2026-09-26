@@ -13,7 +13,7 @@
 
 class Renderer {
 public:
-    Renderer(datastruct::Matrix<double> &u,  datastruct::Matrix<double> &v, std::vector<Obstacle*> &obstacles): u(u), v(v), obstacles(obstacles) {
+    Renderer(datastruct::Matrix<double> &u,  datastruct::Matrix<double> &v, std::vector<Obstacle*> &obstacles, datastruct::Matrix<double> &p): u(u), v(v), obstacles(obstacles), p(p) {
         obstacleVBOs = std::vector<GLuint>(obstacles.size());
         obstacleEBOs = std::vector<GLuint>(obstacles.size());
         obstacleVAOs = std::vector<GLuint>(obstacles.size());
@@ -42,6 +42,7 @@ private:
 
     datastruct::Matrix<double> &u;
     datastruct::Matrix<double> &v;
+    datastruct::Matrix<double> &p;
     std::vector<Obstacle *> &obstacles;
 
     std::vector<GLuint> obstacleVBOs;

@@ -310,8 +310,8 @@ void Renderer::render() {
     // clear Buffers
     glClear(GL_COLOR_BUFFER_BIT);
 
-    updateVelocityBuffer(uBuffer, u);
-    updateVelocityBuffer(vBuffer, v);
+    updateVelocityBuffer(uBuffer, p);
+    updateVelocityBuffer(vBuffer, p);
 
     // bind buffers to corresponding attributes for shader
     // position 0 for u
@@ -326,6 +326,8 @@ void Renderer::render() {
 
     // init rendering process
     glUseProgram(velocityShaderProgram);
+    int maxVelLocation = glGetUniformLocation(velocityShaderProgram, "maxVel");
+    glUniform1f(maxVelLocation, p.data()[p.maxIdx()]);
     glBindVertexArray(velocityVAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
