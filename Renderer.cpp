@@ -310,8 +310,8 @@ void Renderer::render() {
     // clear Buffers
     glClear(GL_COLOR_BUFFER_BIT);
 
-    updateVelocityBuffer(uBuffer, p);
-    updateVelocityBuffer(vBuffer, p);
+    updateVelocityBuffer(uBuffer, u);
+    updateVelocityBuffer(vBuffer, v);
 
     // bind buffers to corresponding attributes for shader
     // position 0 for u
@@ -327,16 +327,16 @@ void Renderer::render() {
     // init rendering process
     glUseProgram(velocityShaderProgram);
     int maxVelLocation = glGetUniformLocation(velocityShaderProgram, "maxVel");
-    glUniform1f(maxVelLocation, p.data()[p.maxIdx()]);
+    glUniform1f(maxVelLocation, Ut);
     glBindVertexArray(velocityVAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 
     glUseProgram(obstacleShaderProgram);
-    for (int i = 0; i < obstacles.size(); i++) {
-        glBindVertexArray(obstacleVAOs[i]);
-        glDrawElements(GL_TRIANGLES, obstacles[i]->getNumVertices()*3, GL_UNSIGNED_INT, 0);
-    }
+    // for (int i = 0; i < obstacles.size(); i++) {
+    //     glBindVertexArray(obstacleVAOs[i]);
+    //     glDrawElements(GL_TRIANGLES, obstacles[i]->getNumVertices()*3, GL_UNSIGNED_INT, 0);
+    // }
 
     glBindVertexArray(0);
     glUseProgram(0);

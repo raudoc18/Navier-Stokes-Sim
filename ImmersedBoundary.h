@@ -13,7 +13,8 @@
 
 class ImmersedBoundary {
     public:
-    ImmersedBoundary(std::vector<Obstacle*> &obstacles, datastruct::Matrix<double> &u, datastruct::Matrix<double> &v,  datastruct::Matrix<double> &ut, datastruct::Matrix<double> &vt) : obstacles(obstacles), u(u), v(v), ut(ut), vt(vt) {
+    ImmersedBoundary(std::vector<Obstacle*> &obstacles, datastruct::Matrix<double> &u, datastruct::Matrix<double> &v,  datastruct::Matrix<double> &ut, datastruct::Matrix<double> &vt,  datastruct::Matrix<double> &f) : obstacles(
+        obstacles), u(u), v(v), ut(ut), vt(vt), f(f){
     }
 
     void computeForceTerms();
@@ -24,5 +25,6 @@ class ImmersedBoundary {
     datastruct::Matrix<double> &v;
     datastruct::Matrix<double> &ut;
     datastruct::Matrix<double> &vt;
+    datastruct::Matrix<double> &f;
 };
 #endif //CPP_PROTOTYPE_IMMERSEDBOUNDARY_H

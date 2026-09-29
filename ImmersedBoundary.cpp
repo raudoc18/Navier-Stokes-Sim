@@ -32,7 +32,7 @@ double ImmersedBoundary::delta(double posx, double posy, double posux, double po
 
 void ImmersedBoundary::computeForceTerms() {
     for (auto obstacle : obstacles) {
-        for (int i = 0; i < obstacle->getNumVertices(); i++) {
+        for (int i = 0; i < obstacle->getNumVertices()*2; i+=2) {
             auto pos_x = obstacle->getVertices()[i];
             auto pos_y = obstacle->getVertices()[i + 1];
 
@@ -68,6 +68,8 @@ void ImmersedBoundary::computeForceTerms() {
 
                     auto pos_v_x = i * dx;
                     auto pos_v_y = j * dy - 0.5 * dy;
+
+                    f(j, i) = 1;
 
                     u(j, i) += f_x * delta(pos_x, pos_y, pos_u_x, pos_u_y) * dx * dy;
                     v(j, i) += f_y * delta(pos_x, pos_y, pos_v_x, pos_v_y) * dx * dy;
