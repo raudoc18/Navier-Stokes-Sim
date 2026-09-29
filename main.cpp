@@ -48,13 +48,6 @@ void boundaryConditions(Matrix &u, Matrix&v) {
     }
 }
 
-void boundaryConditionsAfterProjection(Matrix &u, Matrix&v) {
-    for (int i = 1; i < ny + 1; ++i) {
-        // u(i, 1) = Ut;
-        // u(i, nx + 1) = u(i, nx);
-    }
-}
-
 int main() {
     int cnt = 0;
     double deltat = 0;
@@ -71,6 +64,8 @@ int main() {
     auto vAB = Matrix(0.0);
     auto vCN = Matrix(0.0);
 
+    auto f = Matrix(0.0);
+
     auto p = Matrix(0.0);
     auto pn = Matrix(0.0);
 
@@ -82,9 +77,9 @@ int main() {
     CrankNicolson cn = CrankNicolson(u, v);
     Chorin cho = Chorin(p);
     StreamFunction stream = StreamFunction(u);
-    ImmersedBoundary imb = ImmersedBoundary(obstacles, u, v, ut, vt);
+    ImmersedBoundary imb = ImmersedBoundary(obstacles, u, v, ut, vt, f);
 
-    Renderer ren = Renderer(u, v, obstacles);
+    Renderer ren = Renderer(u, v, obstacles, f);
 
     std::cout << "dt: " << dt << std::endl;
     std::cout << "batch size: " << batchsize << std::endl;
@@ -118,22 +113,11 @@ int main() {
             ut.clone(u);
             vt.clone(v);
 
-            auto start = std::chrono::steady_clock::now();
-            cho.projection(ut, vt);
-            auto end = std::chrono::steady_clock::now();
-            std::chrono::duration<double, std::milli> duration_ms = end - start;
-            std::cout << "Execution time of projection: " << duration_ms.count() << " ms\n";
+            //cho.projection(ut, vt);
 
-            imb.computeForceTerms();
+            // imb.computeForceTerms();
 
-            start = std::chrono::steady_clock::now();
-            p = Matrix();
             cho.projection(u, v);
-            end = std::chrono::steady_clock::now();
-            duration_ms = end - start;
-            std::cout << "Execution time of second projection: " << duration_ms.count() << " ms\n";
-
-            boundaryConditionsAfterProjection(u, v);
 
             // visualization
             if (deltat > 1.0/30.0) {
