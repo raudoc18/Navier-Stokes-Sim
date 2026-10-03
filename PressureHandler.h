@@ -6,13 +6,14 @@
 #define CPP_PROTOTYPE_CHORIN_H
 #include "Matrix.h"
 
-class Chorin {
+class PressureHandler {
 public:
-    Chorin(datastruct::Matrix<double> &p) : p(p) {
+    PressureHandler(datastruct::Matrix<double> &p) : p(p) {
         initBoundaries();
     }
 
     void projection(datastruct::Matrix<double> &u, datastruct::Matrix<double> &v);
+    void gradient(datastruct::Matrix<double> &x, datastruct::Matrix<double> &u, datastruct::Matrix<double> &v);
 
 private:
     datastruct::Matrix<double> &p;
@@ -26,10 +27,10 @@ private:
 
     datastruct::Matrix<double> arangeRK(datastruct::Matrix<double> &u, datastruct::Matrix<double> &v);
 
-    void initBoundaries();
-    void laplaceSolver(datastruct::Matrix<double> &u, datastruct::Matrix<double> &v);
+    void naivSolver(datastruct::Matrix<double> &u, datastruct::Matrix<double> &v);
 
-    void gradient(datastruct::Matrix<double> &x, datastruct::Matrix<double> &u, datastruct::Matrix<double> &v);
+    void initBoundaries();
+    void laplaceSolver(datastruct::Matrix<double> &p_new, datastruct::Matrix<double> &u, datastruct::Matrix<double> &v);
 };
 
 #endif //CPP_PROTOTYPE_CHORIN_H

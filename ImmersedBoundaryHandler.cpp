@@ -2,13 +2,13 @@
 // Created by Dominik on 25.09.26.
 //
 
-#include "ImmersedBoundary.h"
+#include "ImmersedBoundaryHandler.h"
 
 #include <valarray>
 
 #include "Constants.h"
 
-double ImmersedBoundary::delta(double posx, double posy, double posux, double posuy) {
+double ImmersedBoundaryHandler::delta(double posx, double posy, double posux, double posuy) {
     double rx = std::abs(posx - posux) / dx;
     double ry = std::abs(posy - posuy) / dy;
 
@@ -30,7 +30,7 @@ double ImmersedBoundary::delta(double posx, double posy, double posux, double po
     return 1.0/dx * phi_x * 1.0/dy * phi_y;
 }
 
-void ImmersedBoundary::computeForceTerms() {
+void ImmersedBoundaryHandler::computeForceTerms() {
     for (auto obstacle : obstacles) {
         for (int i = 0; i < obstacle->getNumVertices()*2; i+=2) {
             auto pos_x = obstacle->getVertices()[i];

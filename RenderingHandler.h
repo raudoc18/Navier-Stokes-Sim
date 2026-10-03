@@ -11,16 +11,16 @@
 
 #include "Obstacle.h"
 
-class Renderer {
+class RenderingHandler {
 public:
-    Renderer(datastruct::Matrix<double> &u,  datastruct::Matrix<double> &v, std::vector<Obstacle*> &obstacles, datastruct::Matrix<double> &p): u(u), v(v), obstacles(obstacles), p(p) {
+    RenderingHandler(datastruct::Matrix<double> &u,  datastruct::Matrix<double> &v, std::vector<Obstacle*> &obstacles, datastruct::Matrix<double> &p): u(u), v(v), obstacles(obstacles), p(p) {
         obstacleVBOs = std::vector<GLuint>(obstacles.size());
         obstacleEBOs = std::vector<GLuint>(obstacles.size());
         obstacleVAOs = std::vector<GLuint>(obstacles.size());
         init();
     }
 
-    ~Renderer();
+    ~RenderingHandler();
 
     void render();
 

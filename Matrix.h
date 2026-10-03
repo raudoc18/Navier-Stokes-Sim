@@ -86,18 +86,14 @@ class Matrix {
             return cblas_idamax(elem_cnt, this->data(), 1);
         }
 
-        int minIdx() {
-            return 0;
-        }
-
         double dot(const Matrix &m) {
             return cblas_ddot(elem_cnt, this->data(), 1, m.data(), 1);
         }
 
         std::string printMatrix() {
             std::string outstr = "[";
-            for (int j= 1; j < ny + 1; j++) {
-                for (int i = 1; i < nx + 1; i++) {
+            for (int j = 0; j < ny + 2; j++) {
+                for (int i = 0; i < nx + 2; i++) {
                     outstr.append(std::format("{:.{}g}", raw_ptr[j * (nx + 2) + i], std::numeric_limits<double>::max_digits10));
                     outstr.append(", ");
                 }

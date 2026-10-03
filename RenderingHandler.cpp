@@ -2,7 +2,7 @@
 // Created by Dominik on 23.09.26.
 //
 
-#include "Renderer.h"
+#include "RenderingHandler.h"
 
 #include <iostream>
 
@@ -12,7 +12,7 @@
 
 typedef  datastruct::Matrix<double> Matrix;
 
-void Renderer::createWindow() {
+void RenderingHandler::createWindow() {
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW\n";
         exit(1);
@@ -51,11 +51,11 @@ void Renderer::createWindow() {
     compileShaders();
 }
 
-void Renderer::init() {
+void RenderingHandler::init() {
     createWindow();
 }
 
-void Renderer::createContainerBuffer() {
+void RenderingHandler::createContainerBuffer() {
     // create vertices positions and indices
     float quadVertices[] = {
         // Positions   // Texture Coordinates (UV)
@@ -99,7 +99,7 @@ void Renderer::createContainerBuffer() {
     glBindVertexArray(0);
 }
 
-void Renderer::createObstacleBuffer() {
+void RenderingHandler::createObstacleBuffer() {
     int numObstacles = obstacles.size();
 
     glGenVertexArrays(numObstacles, obstacleVAOs.data());
@@ -142,7 +142,7 @@ void Renderer::createObstacleBuffer() {
     glBindVertexArray(0);
 }
 
-void Renderer::createBuffers() {
+void RenderingHandler::createBuffers() {
     createContainerBuffer();
 
     createObstacleBuffer();
@@ -151,7 +151,7 @@ void Renderer::createBuffers() {
     createR32TextureForVelocity(vBuffer);
 }
 
-void Renderer::addShader(GLuint shaderProgram, const char* shaderCode, GLenum shaderType) {
+void RenderingHandler::addShader(GLuint shaderProgram, const char* shaderCode, GLenum shaderType) {
     GLuint shaderObj = glCreateShader(shaderType);
 
     const GLchar* p[1];
@@ -176,7 +176,7 @@ void Renderer::addShader(GLuint shaderProgram, const char* shaderCode, GLenum sh
     glAttachShader(shaderProgram, shaderObj);
 }
 
-void Renderer::compileShaders() {
+void RenderingHandler::compileShaders() {
     const char* VSFileName = "./shaders/velocity/vertex.vs";
     const char* FSFileName = "./shaders/velocity/fragment.fs";
     const char* obstacleVSFileName = "./shaders/obstacle/vertex.fs";
@@ -264,7 +264,7 @@ void Renderer::compileShaders() {
     glBindVertexArray(0);
 }
 
-void Renderer::createR32TextureForVelocity(GLuint &bufferID) {
+void RenderingHandler::createR32TextureForVelocity(GLuint &bufferID) {
 
     // create new texture binder and bind it
     glGenTextures(1, &bufferID);
@@ -280,14 +280,14 @@ void Renderer::createR32TextureForVelocity(GLuint &bufferID) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, nx + 2, ny + 2, 0, GL_RED, GL_FLOAT, nullptr);
 }
 
-Renderer::~Renderer() {
+RenderingHandler::~RenderingHandler() {
     glDeleteProgram(velocityShaderProgram);
     glDeleteTextures(1, &uBuffer);
     glDeleteTextures(1, &vBuffer);
     glDeleteVertexArrays(1, &velocityVAO);
 }
 
-void Renderer::updateVelocityBuffer(GLuint &bufferID, Matrix &m) {
+void RenderingHandler::updateVelocityBuffer(GLuint &bufferID, Matrix &m) {
     // Ensure tight row alignment for single-channel floats
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
@@ -306,7 +306,7 @@ void Renderer::updateVelocityBuffer(GLuint &bufferID, Matrix &m) {
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, nx + 2, ny + 2, GL_RED, GL_FLOAT, mFloat.data());
 }
 
-void Renderer::render() {
+void RenderingHandler::render() {
     // clear Buffers
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -327,7 +327,9 @@ void Renderer::render() {
     // init rendering process
     glUseProgram(velocityShaderProgram);
     int maxVelLocation = glGetUniformLocation(velocityShaderProgram, "maxVel");
-    glUniform1f(maxVelLocation, Ut);
+    int minVelLocation = glGetUniformLocation(velocityShaderProgram, "minVel");
+    glUniform1f(maxVelLocation, 2);
+    glUniform1f(minVelLocation, 0.0);
     glBindVertexArray(velocityVAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 

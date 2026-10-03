@@ -28,7 +28,6 @@ void StreamFunction::computeStreamFunc() {
 
 void StreamFunction::extractLines() {
     double max = streamFunc.data()[streamFunc.maxIdx()];
-    double min = streamFunc.data()[streamFunc.minIdx()];
 
 
 }

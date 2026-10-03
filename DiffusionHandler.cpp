@@ -3,13 +3,13 @@
 //
 #include <Accelerate/Accelerate.h>
 
-#include "CrankNicolson.h"
+#include "DiffusionHandler.h"
 
 #include <iostream>
 
 typedef datastruct::Matrix<double> Matrix;
 
-Matrix CrankNicolson::AdotCN(const Matrix &m) {
+Matrix DiffusionHandler::AdotCN(const Matrix &m) {
     auto res = Matrix(0.0);
     auto* res_ptr = &res;
 
@@ -32,7 +32,7 @@ Matrix CrankNicolson::AdotCN(const Matrix &m) {
     return res;
 }
 
-Matrix CrankNicolson::arangeRK(Matrix &x) const {
+Matrix DiffusionHandler::arangeRK(Matrix &x) const {
     auto res = Matrix(0.0);
     auto* res_ptr = &res;
 
@@ -56,12 +56,53 @@ Matrix CrankNicolson::arangeRK(Matrix &x) const {
     return res;
 }
 
-void CrankNicolson::CN_Wrapper() {
+void DiffusionHandler::CN_Wrapper() {
     CN(u);
     CN(v);
 }
 
-void CrankNicolson::CN(Matrix &m) {
+void DiffusionHandler::explicitDiffusion(Matrix &uDiff, Matrix &vDiff) {
+    dispatch_queue_t queue = dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0);
+
+    // get the number of workers
+    int n_workers = (ny + batchsize - 1) / batchsize;
+
+    for (int j = 1; j < ny + 1; j++) {
+        for (int i = 2; i < nx + 1; i++) {
+            uDiff(j, i) = dt*nu * ((u(j, i + 1) - 2.0 * u(j, i) + u(j, i - 1))/(dx*dx) + (u(j + 1, i) - 2.0 * u(j, i) + u(j - 1, i))/(dy*dy));
+        }
+    }
+
+    for (int j = 2; j < ny + 1; j++) {
+        for (int i = 1; i < nx + 1; i++) {
+            vDiff(j, i) = dt*nu * ((v(j, i + 1) - 2.0 * v(j, i) + v(j, i - 1))/(dx*dx) + (v(j + 1, i) - 2.0 * v(j, i) + v(j - 1, i))/(dy*dy));
+        }
+    }
+
+    // dispatch_apply(n_workers, queue, ^(size_t batch_idx) {
+    //     int start_idx = static_cast<int>(batch_idx) * batchsize + 1;
+    //     int end_idx = std::min(start_idx + batchsize, ny + 1);
+    //
+    //     for (int j = start_idx; j < end_idx; j++) {
+    //         for (int i = 1; i < nx + 1; i++) {
+    //             uDiff(j, i) = dt*nu * ((u(j, i + 1) - 2.0 * u(j, i) + u(j, i - 1))/(dx*dx) + (u(j + 1, i) - 2.0 * u(j, i) + u(j - 1, i))/(dy*dy));
+    //         }
+    //     }
+    // });
+    //
+    // dispatch_apply(n_workers, queue, ^(size_t batch_idx) {
+    //     int start_idx = static_cast<int>(batch_idx) * batchsize + 1;
+    //     int end_idx = std::min(start_idx + batchsize, ny);
+    //
+    //     for (int j = start_idx; j < end_idx; j++) {
+    //         for (int i = 1; i < nx + 1; i++) {
+    //             vDiff(j, i) = dt*nu * ((v(j, i + 1) - 2.0 * v(j, i) + v(j, i - 1))/(dx*dx)  + (v(j + 1, i) - 2.0 * v(j, i) + v(j - 1, i))/(dy*dy));
+    //         }
+    //     }
+    // });
+}
+
+void DiffusionHandler::CN(Matrix &m) {
     Matrix rk = arangeRK(m);
 
     Matrix pk = Matrix();

@@ -3,47 +3,69 @@
 #include <iostream>
 #include <thread>
 
-#include "AdamsBashforth.h"
-#include "Chorin.h"
-#include "CrankNicolson.h"
-#include "ImmersedBoundary.h"
-#include "Renderer.h"
+#include "ConvectionHandler.h"
+#include "PressureHandler.h"
+#include "DiffusionHandler.h"
+#include "ImmersedBoundaryHandler.h"
+#include "RenderingHandler.h"
 #include "StreamFunction.h"
 
 typedef datastruct::Matrix<double> Matrix;
 
+void initialConditions(Matrix &u, Matrix&v) {
+    for (int i = 0; i < nx + 2; ++i) {
+        for (int j = 0; j < ny + 2; ++j) {
+            // if inside
+            if (j != 0 && j != ny + 1) {
+                u(j, i) = Ut;
+            }
+        }
+    }
+}
+
 void boundaryConditions(Matrix &u, Matrix&v) {
     for (int i = 0; i < nx + 2; ++i) {
         for (int j = 0; j < ny + 2; ++j) {
-            if (j == ny + 1) {
-                u(j, i) = -u(j - 1, i);
+            // inner y points
+            if (j != 0 && j != ny + 1) {
+                // u boundary conditions
+                // left side inlet
+                if (i == 1) {
+                    u(j, i) = Ut;
+                }
+                // right side outlet
+                else if (i == nx + 1) {
+                    u(j, i) = u(j, i - 1);
+                }
+                // left side inlet but v = 0
+                if (i == 0) {
+                    v(j, i) = -v(j, i + 1);
+                }
+                // right side outlet
+                else if (i == nx + 1) {
+                    v(j, i) = v(j, i - 1);
+                }
+            }
+            // inner x
+            if (i != 0 && i != nx + 1) {
+                // upper side
+                if (j == 0) {
+                    u(j, i) = -u(j + 1, i);
+                }
+                // lower side
+                else if (j == ny + 1) {
+                    u(j, i) = -u(j - 1, i);
+                }
+                // upper side
+                if (j == 1) {
+                    v(j, i) = 0;
+                }
+                // lower side
+                else if (j == ny + 1) {
+                    v(j, i) = 0;
+                }
             }
 
-            if (j == 0) {
-                u(j, i) = -u(j + 1, i);
-            }
-
-            if (i == 1) {
-                u(j, i) = Ut;
-            }
-            if (i == nx + 1) {
-                u(j, i) = u(j, i - 1);
-            }
-
-            if (i == 0) {
-                v(j, i) = -v(j, i + 1);
-            }
-            if (i == nx + 1) {
-                v(j, i) = v(j, i - 1);
-            }
-
-            if (j == 0) {
-                v(j, i) = 0;
-            }
-
-            if (j == ny) {
-                v(j, i) = 0;
-            }
         }
     }
 }
@@ -55,14 +77,14 @@ int main() {
     auto u = Matrix(0.0);
     auto ut = Matrix(0.0);
     auto unm1 = Matrix(0.0);
-    auto uAB = Matrix(0.0);
-    auto uCN = Matrix(0.0);
+    auto uCon = Matrix(0.0);
+    auto uDiff = Matrix(0.0);
 
     auto v = Matrix(0.0);
     auto vt = Matrix(0.0);
     auto vnm1 = Matrix(0.0);
-    auto vAB = Matrix(0.0);
-    auto vCN = Matrix(0.0);
+    auto vCon = Matrix(0.0);
+    auto vDiff = Matrix(0.0);
 
     auto f = Matrix(0.0);
 
@@ -73,59 +95,82 @@ int main() {
 
     std::vector obstacles = { &circle };
 
-    AdamsBashforth adm = AdamsBashforth(uAB, u, unm1, vAB, v, vnm1);
-    CrankNicolson cn = CrankNicolson(u, v);
-    Chorin cho = Chorin(p);
-    StreamFunction stream = StreamFunction(u);
-    ImmersedBoundary imb = ImmersedBoundary(obstacles, u, v, ut, vt, f);
+    ConvectionHandler convection = ConvectionHandler(u, u, unm1, v, v, vnm1);
+    DiffusionHandler diffusion = DiffusionHandler(u, v);
+    PressureHandler pressure = PressureHandler(p);
+    ImmersedBoundaryHandler imb = ImmersedBoundaryHandler(obstacles, u, v, ut, vt, f);
 
-    Renderer ren = Renderer(u, v, obstacles, f);
+    RenderingHandler ren = RenderingHandler(u, v, obstacles, p);
 
     std::cout << "dt: " << dt << std::endl;
     std::cout << "batch size: " << batchsize << std::endl;
     std::cout << "nx: " << nx << std::endl;
     std::cout << "ny: " << ny << std::endl;
     std::cout << "Re: " << Re << std::endl;
+    u.collectAsVector();
+    initialConditions(u, v);
 
     while (!glfwWindowShouldClose(ren.getWindow())) {
         while (true) {
             boundaryConditions(u, v);
-            boundaryConditions(unm1, vnm1);
 
-            p = Matrix(0.0);
-            unm1.clone(u);
-            vnm1.clone(v);
+            uCon = Matrix(0.0);
+            vCon = Matrix(0.0);
 
-            if (cnt == 0) {
-                adm.forwardEuleru();
-                adm.forwardEulerv();
+            convection.forwardEuler(uCon, vCon);
+
+            diffusion.explicitDiffusion(uDiff, vDiff);
+
+            uCon.add(uDiff);
+            vCon.add(vDiff);
+
+            u = std::move(uCon);
+            v = std::move(vCon);
+
+            pressure.gradient(p, u, v);
+
+            boundaryConditions(u, v);
+
+            pressure.projection(u, v);
+
+            Matrix divu = Matrix(0.0);
+            Matrix divv = Matrix(0.0);
+
+            for (int i = 1; i < nx; i++) {
+                for (int j = 1; j < ny + 1; j++) {
+                    divu(j, i) = ((u(j, i + 1) - u(j, i)) / dx);
+                }
             }
-            else {
-                adm.AB2u();
-                adm.AB2v();
+
+
+            for (int i = 1; i < nx + 1; i++) {
+                for (int j = 1; j < ny + 1; j++) {
+                    divv(j, i) = ((v(j + 1, i) - v(j, i)) / dy);
+                }
             }
 
-            cn.CN_Wrapper();
+            divu.add(divv);
 
-            u.add(uAB);
-            v.add(vAB);
-
-            ut.clone(u);
-            vt.clone(v);
-
-            //cho.projection(ut, vt);
-
-            // imb.computeForceTerms();
-
-            cho.projection(u, v);
+            std::cout << "Maximum divergence: " << divu.data()[divu.maxIdx()] << std::endl;
 
             // visualization
-            if (deltat > 1.0/30.0) {
-                deltat = 0;
-                ren.render();
-            }
+            // if (deltat > 1.0/30.0) {
+            //     deltat = 0;
+            //     ren.render();
+            // }
+
             ren.render();
+
+            double sum_inlet = 0.0;
+            double sum_outlet = 0.0;
+            for (int j = 1; j < ny + 1; ++j) {
+                sum_inlet += u(j, 2);
+                sum_outlet += u(j, nx + 1);
+            }
+
+            std::cout << "Mass Difference: " << sum_inlet - sum_outlet << std::endl;
             deltat += dt;
+            cnt++;
         }
     }
 

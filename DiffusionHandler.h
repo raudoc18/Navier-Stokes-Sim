@@ -6,12 +6,16 @@
 #define CPP_PROTOTYPE_CRANKNICOLSON_H
 #include "Matrix.h"
 
-class CrankNicolson {
+class DiffusionHandler {
     public:
-    CrankNicolson(datastruct::Matrix<double> &u, datastruct::Matrix<double>&v
+    DiffusionHandler(datastruct::Matrix<double> &u, datastruct::Matrix<double>&v
        ) : u(u), v(v) {}
 
     void CN_Wrapper();
+
+    void explicitDiffusion(datastruct::Matrix<double> &u, datastruct::Matrix<double> &v);
+
+    void naivAdvectionSolver(datastruct::Matrix<double> &u, datastruct::Matrix<double> &v);
 
 private:
     datastruct::Matrix<double> &u;

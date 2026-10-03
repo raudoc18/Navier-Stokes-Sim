@@ -6,35 +6,38 @@ set(CMAKE_CXX_STANDARD 20)
 find_package(glfw3 3.3 REQUIRED)
 find_package(OpenGL REQUIRED)
 
+set(BLA_VENDOR "Apple")
+find_package(BLAS REQUIRED)
+
 # optimization flags
-add_compile_options(
-        -O3               # Maximum speed optimization
-        -march=native     # Target your specific Intel Skylake/Coffee Lake CPU architecture
-        -mavx2            # 256-bit wide SIMD vector registers (8 floats per cycle)
-        -mfma             # Fused multiply-add in single clock cycle
-        -fblocks          # Required for Apple Grand Central Dispatch (dispatch_apply)
-        -ffast-math       # Enables aggressive floating-point vectorization
-)
+#add_compile_options(
+#        -O3               # Maximum speed optimization
+#        -march=native     # Target your specific Intel Skylake/Coffee Lake CPU architecture
+#        -mavx2            # 256-bit wide SIMD vector registers (8 floats per cycle)
+#        -mfma             # Fused multiply-add in single clock cycle
+#        -fblocks          # Required for Apple Grand Central Dispatch (dispatch_apply)
+#        -ffast-math       # Enables aggressive floating-point vectorization
+#)
 
 add_compile_options(-Rpass=loop-vectorize)
 add_executable(Cpp_Prototype main.cpp
         Matrix.h
-        AdamsBashforth.h
-        AdamsBashforth.cpp
-        CrankNicolson.h
-        CrankNicolson.cpp
-        Chorin.h
-        Chorin.cpp
-        Renderer.cpp
-        Renderer.h
+        ConvectionHandler.h
+        ConvectionHandler.cpp
+        DiffusionHandler.h
+        DiffusionHandler.cpp
+        PressureHandler.h
+        PressureHandler.cpp
+        RenderingHandler.cpp
+        RenderingHandler.h
         Utils.h
         Utils.cpp
         StreamFunction.h
         StreamFunction.cpp
         Obstacle.h
         Obstacle.cpp
-        ImmersedBoundary.h
-        ImmersedBoundary.cpp
+        ImmersedBoundaryHandler.h
+        ImmersedBoundaryHandler.cpp
 )
 
 target_compile_options(Cpp_Prototype PRIVATE -fsanitize=address -g)
@@ -49,6 +52,8 @@ target_include_directories(glad PUBLIC external/glad/include)
 target_link_libraries(${PROJECT_NAME} PRIVATE
         "-framework Accelerate"
 )
+
+target_link_libraries(${PROJECT_NAME} PRIVATE BLAS::BLAS)
 
 target_link_libraries(${PROJECT_NAME}
         PRIVATE
