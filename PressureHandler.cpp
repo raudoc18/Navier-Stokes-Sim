@@ -75,7 +75,7 @@ void PressureHandler::laplaceSolver(Matrix &p_new, Matrix &u, Matrix &v) {
         ++cnt;
     }
     p_new.subtract(ones, p_new.mean());
-    std::cerr << "Warning: Did not converge in the specified timesteps! " << cnt << std::endl;
+    std::cerr << "Warning: Did not converge in the specified timesteps! " << cnt << " Norm: " << std::sqrt(rkdot) << std::endl;
 }
 
 void PressureHandler::gradient(Matrix &x, Matrix &u, Matrix &v) {

@@ -6,7 +6,7 @@
 #define CPP_CONSTANTS_H
 #include <algorithm>
 
-const int nx = 140;
+const int nx = 70;
 const int ny = 14;
 
 const double tol = 1e-5;
@@ -14,7 +14,7 @@ const int maxit = 10000;
 
 const int elem_cnt = (nx + 2) * (ny + 2);
 
-const double lx = 10; // m
+const double lx = 5; // m
 const double ly = 1; // m
 
 const double dx = lx/static_cast<double>(nx);
@@ -28,7 +28,7 @@ const int windowWidth = lx / ly * 400;
 const int windowHeight = 400;
 
 const double courant_number = 0.5;
-const double Ut = 1.0;
+const double Ut = 5.0;
 
 const double Re = rho * Ut * lx/mu;
 

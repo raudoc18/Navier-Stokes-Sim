@@ -328,17 +328,17 @@ void RenderingHandler::render() {
     glUseProgram(velocityShaderProgram);
     int maxVelLocation = glGetUniformLocation(velocityShaderProgram, "maxVel");
     int minVelLocation = glGetUniformLocation(velocityShaderProgram, "minVel");
-    glUniform1f(maxVelLocation, 2);
+    glUniform1f(maxVelLocation, 10.0);
     glUniform1f(minVelLocation, 0.0);
     glBindVertexArray(velocityVAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 
     glUseProgram(obstacleShaderProgram);
-    // for (int i = 0; i < obstacles.size(); i++) {
-    //     glBindVertexArray(obstacleVAOs[i]);
-    //     glDrawElements(GL_TRIANGLES, obstacles[i]->getNumVertices()*3, GL_UNSIGNED_INT, 0);
-    // }
+    for (int i = 0; i < obstacles.size(); i++) {
+        glBindVertexArray(obstacleVAOs[i]);
+        glDrawElements(GL_TRIANGLES, obstacles[i]->getNumVertices()*3, GL_UNSIGNED_INT, 0);
+    }
 
     glBindVertexArray(0);
     glUseProgram(0);

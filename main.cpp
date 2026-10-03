@@ -91,7 +91,7 @@ int main() {
     auto p = Matrix(0.0);
     auto pn = Matrix(0.0);
 
-    Obstacle circle = Obstacle(0.5, 0.5);
+    Obstacle circle = Obstacle(1.5, 0.5);
 
     std::vector obstacles = { &circle };
 
@@ -131,44 +131,21 @@ int main() {
 
             boundaryConditions(u, v);
 
+            ut.clone(u);
+            vt.clone(v);
+
+            pressure.projection(ut, vt);
+
+            imb.computeForceTerms();
+
             pressure.projection(u, v);
 
-            Matrix divu = Matrix(0.0);
-            Matrix divv = Matrix(0.0);
-
-            for (int i = 1; i < nx; i++) {
-                for (int j = 1; j < ny + 1; j++) {
-                    divu(j, i) = ((u(j, i + 1) - u(j, i)) / dx);
-                }
+            //visualization
+            if (deltat > 1.0/30.0) {
+                deltat = 0;
+                ren.render();
             }
 
-
-            for (int i = 1; i < nx + 1; i++) {
-                for (int j = 1; j < ny + 1; j++) {
-                    divv(j, i) = ((v(j + 1, i) - v(j, i)) / dy);
-                }
-            }
-
-            divu.add(divv);
-
-            std::cout << "Maximum divergence: " << divu.data()[divu.maxIdx()] << std::endl;
-
-            // visualization
-            // if (deltat > 1.0/30.0) {
-            //     deltat = 0;
-            //     ren.render();
-            // }
-
-            ren.render();
-
-            double sum_inlet = 0.0;
-            double sum_outlet = 0.0;
-            for (int j = 1; j < ny + 1; ++j) {
-                sum_inlet += u(j, 2);
-                sum_outlet += u(j, nx + 1);
-            }
-
-            std::cout << "Mass Difference: " << sum_inlet - sum_outlet << std::endl;
             deltat += dt;
             cnt++;
         }
